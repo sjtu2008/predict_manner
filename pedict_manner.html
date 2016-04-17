@@ -483,14 +483,12 @@ gp &lt;- xgb.plot.importance(importance_matrix)
 
 <h3>Final submission files</h3>
 
-<pre><code class="r">path &lt;- &quot;./answer&quot;
-pml_write_files &lt;- function(x) {
-    n = length(x)
-    for(i in 1: n) {
-        filename &lt;- paste0(&quot;problem_&quot;, i, &quot;.txt&quot;)
-        write.table(x[i], file=file.path(path, filename), 
-                    quote=FALSE, row.names=FALSE, col.names=FALSE)
-    }
+<pre><code class="r">pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0(&quot;problem_id_&quot;,i,&quot;.txt&quot;)
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
 }
 pml_write_files(pred.char)
 </code></pre>
