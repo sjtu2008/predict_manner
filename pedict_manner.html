@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>predict_manner</title>
+  <meta charset="utf-8">
+  <meta name="description" content="predict_manner">
+  <meta name="author" content="Roy Wang">
+  <meta name="generator" content="slidify" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <link rel="stylesheet" href="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/css/default.css" media="all" >
+  <link rel="stylesheet" href="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/css/phone.css" 
+    media="only screen and (max-device-width: 480px)" >
+  <link rel="stylesheet" href="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/css/slidify.css" >
+  <link rel="stylesheet" href="http://slidifylibraries2.googlecode.com/git/inst/libraries/highlighters/highlight.js/css/tomorrow.css" />
+  <base target="_blank"> <!-- This amazingness opens all links in a new tab. -->  
+  
+  <!-- Grab CDN jQuery, fall back to local if offline -->
+  <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.min.js"></script>
+  <script>window.jQuery || document.write('<script src="http://slidifylibraries2.googlecode.com/git/inst/libraries/widgets/quiz/js/jquery.js"><\/script>')</script> 
+  <script data-main="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/js/slides" 
+    src="http://slidifylibraries2.googlecode.com/git/inst/libraries/frameworks/io2012/js/require-1.0.8.min.js">
+  </script>
+  
+  
+
+</head>
+<body style="opacity: 0">
+  <slides class="layout-widescreen">
+    
+    <!-- LOGO SLIDE -->
+        <slide class="title-slide segue nobackground">
+  <hgroup class="auto-fadein">
+    <h1>predict_manner</h1>
+    <h2></h2>
+    <p>Roy Wang<br/></p>
+  </hgroup>
+  <article></article>  
+</slide>
+    
+
+    <!-- SLIDES -->
+    <slide class="" id="slide-1" style="background:;">
+  <hgroup>
+    <h2>Prediction Assignment</h2>
+  </hgroup>
+  <article data-timings="">
+    <h2>Background</h2>
+
+<p>Using devices such as JawboneUp, NikeFuelBand, and Fitbitit is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in
+their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it.  </p>
+
+<p>In this project, the goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website: <a href="http://groupware.les.inf.puc-rio.br/har">http://groupware.les.inf.puc-rio.br/har</a> (see the section on the Weight Lifting Exercise Dataset).   </p>
+
+<h4>Load packages and datasets</h4>
+
+<pre><code class="r">library(caret)
+</code></pre>
+
+<pre><code>## Warning: package &#39;ggplot2&#39; was built under R version 3.2.4
+</code></pre>
+
+<pre><code class="r">library(rpart)
+library(corrplot)
+library(rpart.plot)
+library(RColorBrewer)
+library(rattle)
+library(Rtsne)
+library(xgboost)
+library(stats)
+library(knitr)
+library(Ckmeans.1d.dp)
+library(ggplot2)
+knitr::opts_chunk$set(cache = TRUE)
+</code></pre>
+
+<p>Set same seed for the code below:</p>
+
+<pre><code class="r">set.seed(12345)
+</code></pre>
+
+<h4>Getting the data</h4>
+
+<pre><code class="r"># the training data  set
+training_data &lt;- download.file(&quot;http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;,&quot;data&quot;)
+</code></pre>
+
+<pre><code>## Error in download.file(&quot;http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;, : cannot open destfile &#39;data&#39;, reason &#39;Is a directory&#39;
+</code></pre>
+
+<pre><code class="r">testing_data &lt;- download.file(&quot;http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot;,&quot;data&quot;)
+</code></pre>
+
+<pre><code>## Error in download.file(&quot;http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot;, : cannot open destfile &#39;data&#39;, reason &#39;Is a directory&#39;
+</code></pre>
+
+<h3>Reading data</h3>
+
+<pre><code class="r"># load the CSV files as data.frame 
+training_data &lt;- read.csv(&quot;pml-training.csv&quot;,na.strings=c(&quot;NA&quot;,&quot;#DIV/0!&quot;,&quot;&quot;))
+</code></pre>
+
+<pre><code>## Warning in file(file, &quot;rt&quot;): cannot open file &#39;pml-training.csv&#39;: No such
+## file or directory
+</code></pre>
+
+<pre><code>## Error in file(file, &quot;rt&quot;): cannot open the connection
+</code></pre>
+
+<pre><code class="r">testing_data &lt;- read.csv(&quot;pml-testing.csv&quot;,na.strings=c(&quot;NA&quot;,&quot;#DIV/0!&quot;,&quot;&quot;))
+</code></pre>
+
+<pre><code>## Warning in file(file, &quot;rt&quot;): cannot open file &#39;pml-testing.csv&#39;: No such
+## file or directory
+</code></pre>
+
+<pre><code>## Error in file(file, &quot;rt&quot;): cannot open the connection
+</code></pre>
+
+<pre><code class="r">names(training_data)
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;training_data&#39; not found
+</code></pre>
+
+<p>The raw training data has 19622 rows of observations and 158 features (predictors). Column <code>X</code> is unusable row number. While the testing data has 20 rows and the same 158 features. There is one column of target outcome named <code>classe</code>. </p>
+
+<h4>Data cleaning</h4>
+
+<pre><code class="r">outcome_temp &lt;- training_data[, &quot;classe&quot;]
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;training_data&#39; not found
+</code></pre>
+
+<pre><code class="r">outcome &lt;- outcome_temp
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;outcome_temp&#39; not found
+</code></pre>
+
+<pre><code class="r">levels(outcome)
+</code></pre>
+
+<pre><code>## Error in levels(outcome): object &#39;outcome&#39; not found
+</code></pre>
+
+<p>Convert the outcome to numeric, XGBoost gradient booster only recognizes numeric data.   </p>
+
+<pre><code class="r"># convert character levels to numeric
+num_len &lt;-length(levels(outcome))
+</code></pre>
+
+<pre><code>## Error in levels(outcome): object &#39;outcome&#39; not found
+</code></pre>
+
+<pre><code class="r">levels(outcome) = 1:num_len
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;num_len&#39; not found
+</code></pre>
+
+<pre><code class="r">head(outcome)
+</code></pre>
+
+<pre><code>## Error in head(outcome): object &#39;outcome&#39; not found
+</code></pre>
+
+<pre><code class="r"># remove outcome from train
+training_data$classe = NULL
+</code></pre>
+
+<pre><code>## Error in training_data$classe = NULL: object &#39;training_data&#39; not found
+</code></pre>
+
+<p>Seperate columns on: belt, forearm, arm, dumbell</p>
+
+<pre><code class="r">splitter &lt;- grepl(&quot;belt|arm|dumbell&quot;, names(training_data))
+</code></pre>
+
+<pre><code>## Error in grepl(&quot;belt|arm|dumbell&quot;, names(training_data)): object &#39;training_data&#39; not found
+</code></pre>
+
+<pre><code class="r">training_data &lt;- training_data[, splitter]
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;training_data&#39; not found
+</code></pre>
+
+<pre><code class="r">testing_data &lt;- testing_data[, splitter]
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;testing_data&#39; not found
+</code></pre>
+
+<p>remove columns with NA</p>
+
+<pre><code class="r">cols_na = colSums(is.na(testing_data)) == 0
+</code></pre>
+
+<pre><code>## Error in is.data.frame(x): object &#39;testing_data&#39; not found
+</code></pre>
+
+<pre><code class="r">training_data = training_data[,cols_na]
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;training_data&#39; not found
+</code></pre>
+
+<pre><code class="r">testing_data = testing_data[, cols_na]
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;testing_data&#39; not found
+</code></pre>
+
+<h3>Preprocessing  data</h3>
+
+<p>check for zero variance</p>
+
+<pre><code class="r">zero_var = nearZeroVar(training_data, saveMetrics=TRUE)
+</code></pre>
+
+<pre><code>## Error in is.vector(x): object &#39;training_data&#39; not found
+</code></pre>
+
+<pre><code class="r">zero_var
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;zero_var&#39; not found
+</code></pre>
+
+<h4>Plot of relationship between features and outcome</h4>
+
+<pre><code class="r">featurePlot(training_data, outcome_temp, &quot;strip&quot;)
+</code></pre>
+
+<pre><code>## Error in is.data.frame(x): object &#39;training_data&#39; not found
+</code></pre>
+
+<h4>Plot of correlation matrix</h4>
+
+<p>Plot a correlation matrix between features.   </p>
+
+<pre><code class="r">corrplot.mixed(cor(training_data), lower=&quot;circle&quot;, upper=&quot;color&quot;, 
+               tl.pos=&quot;lt&quot;, diag=&quot;n&quot;, order=&quot;hclust&quot;, hclust.method=&quot;complete&quot;)
+</code></pre>
+
+<pre><code>## Error in is.data.frame(x): object &#39;training_data&#39; not found
+</code></pre>
+
+<h3>Build machine learning model</h3>
+
+<p>Now build a machine learning model to predict activity quality (<code>classe</code> outcome) from the activity monitors (the features or predictors) by using XGBoost extreme gradient boosting algorithm.    </p>
+
+<h4>XGBoost data</h4>
+
+<pre><code class="r"># convert data to matrix
+training_matrix &lt;- as.matrix(training_data)
+</code></pre>
+
+<pre><code>## Error in as.matrix(training_data): object &#39;training_data&#39; not found
+</code></pre>
+
+<pre><code class="r">mode(training_matrix) &lt;- &quot;numeric&quot;
+</code></pre>
+
+<pre><code>## Error in mode(training_matrix) &lt;- &quot;numeric&quot;: object &#39;training_matrix&#39; not found
+</code></pre>
+
+<pre><code class="r">testing_matrix&lt;- as.matrix(testing_data)
+</code></pre>
+
+<pre><code>## Error in as.matrix(testing_data): object &#39;testing_data&#39; not found
+</code></pre>
+
+<pre><code class="r">mode(testing_matrix) &lt;- &quot;numeric&quot;
+</code></pre>
+
+<pre><code>## Error in mode(testing_matrix) &lt;- &quot;numeric&quot;: object &#39;testing_matrix&#39; not found
+</code></pre>
+
+<pre><code class="r"># convert outcome from factor to numeric matrix 
+#   xgboost takes multi-labels in [0, numOfClass)
+y = as.matrix(as.integer(outcome)-1)
+</code></pre>
+
+<pre><code>## Error in as.matrix(as.integer(outcome) - 1): object &#39;outcome&#39; not found
+</code></pre>
+
+<h4>XGBoost parameters</h4>
+
+<p>Set XGBoost parameters for cross validation and training.  </p>
+
+<pre><code class="r">param &lt;- list(&quot;objective&quot; = &quot;multi:softprob&quot;,    # multiclass classification 
+              &quot;num_class&quot; = num_len,    # number of classes 
+              &quot;eval_metric&quot; = &quot;merror&quot;,    # evaluation metric 
+              &quot;nthread&quot; = 8,   # number of threads to be used 
+              &quot;max_depth&quot; = 16,    # maximum depth of tree 
+              &quot;eta&quot; = 0.3,    # step size shrinkage 
+              &quot;gamma&quot; = 0,    # minimum loss reduction 
+              &quot;subsample&quot; = 1,    # part of data instances to grow tree 
+              &quot;colsample_bytree&quot; = 1,  # subsample ratio of columns when constructing each tree 
+              &quot;min_child_weight&quot; = 12  # minimum sum of instance weight needed in a child 
+              )
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;num_len&#39; not found
+</code></pre>
+
+<h4>Expected error rate</h4>
+
+<p>Expected error rate is less than <code>1%</code> for a good classification. Do cross validation to estimate the error rate using 4-fold cross validation, with 200 epochs to reach the expected error rate of less than <code>1%</code>.  </p>
+
+<h4>k-fold cross validation, with timing</h4>
+
+<pre><code class="r">nround.cv = 200
+system.time( bst.cv &lt;- xgb.cv(param=param, data=training_matrix, label=y, 
+              nfold=4, nrounds=nround.cv, prediction=TRUE, verbose=FALSE) )
+</code></pre>
+
+<pre><code>## Error in typeof(params): object &#39;param&#39; not found
+</code></pre>
+
+<pre><code>## Timing stopped at: 0.001 0 0
+</code></pre>
+
+<pre><code class="r">tail(bst.cv$dt) 
+</code></pre>
+
+<pre><code>## Error in tail(bst.cv$dt): object &#39;bst.cv&#39; not found
+</code></pre>
+
+<p>From the cross validation, choose index with minimum multiclass error rate.<br>
+Index will be used in the model training to fulfill expected minimum error rate of <code>&lt; 1%</code>.  </p>
+
+<pre><code class="r"># index of minimum merror
+merror_idx &lt;- which.min(bst.cv$dt[, test.merror.mean]) 
+</code></pre>
+
+<pre><code>## Error in which.min(bst.cv$dt[, test.merror.mean]): object &#39;bst.cv&#39; not found
+</code></pre>
+
+<pre><code class="r">merror_idx 
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;merror_idx&#39; not found
+</code></pre>
+
+<pre><code class="r"># minimum merror
+bst.cv$dt[merror_idx,]
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;bst.cv&#39; not found
+</code></pre>
+
+<p>Best cross-validation&#39;s minimum error rate <code>test.merror.mean</code> is around 0.0056 (0.6%), happened at 146th iteration.   </p>
+
+<h4>Confusion matrix</h4>
+
+<p>Tabulates the cross-validation&#39;s predictions of the model against the truths.  </p>
+
+<pre><code class="r"># get CV&#39;s prediction decoding
+pred.cv &lt;- matrix(bst.cv$pred, nrow=length(bst.cv$pred)/num_len, ncol=num_len)
+</code></pre>
+
+<pre><code>## Error in matrix(bst.cv$pred, nrow = length(bst.cv$pred)/num_len, ncol = num_len): object &#39;bst.cv&#39; not found
+</code></pre>
+
+<pre><code class="r">pred.cv &lt;- max.col(pred.cv, &quot;last&quot;)
+</code></pre>
+
+<pre><code>## Error in as.matrix(m): object &#39;pred.cv&#39; not found
+</code></pre>
+
+<pre><code class="r"># confusion matrix
+confusionMatrix(factor(y+1), factor(pred.cv))
+</code></pre>
+
+<pre><code>## Error in factor(y + 1): object &#39;y&#39; not found
+</code></pre>
+
+<p>Confusion matrix shows concentration of correct predictions is on the diagonal, as expected.  </p>
+
+<p>The average accuracy is <code>99.84%</code>, with error rate is <code>0.16%</code>. So, expected error rate of less than <code>1%</code> is fulfilled.  </p>
+
+<h4>Model training</h4>
+
+<p>Fit the XGBoost gradient boosting model on all of the training data.   </p>
+
+<pre><code class="r"># real model fit training, with full data
+system.time( bst &lt;- xgboost(param=param, data=training_matrix, label=y, 
+                           nrounds=merror_idx, verbose=0) )
+</code></pre>
+
+<pre><code>## Error in xgb.get.DMatrix(data, label): object &#39;training_matrix&#39; not found
+</code></pre>
+
+<pre><code>## Timing stopped at: 0.001 0 0.001
+</code></pre>
+
+<p>Time elapsed is around 63 seconds.  </p>
+
+<h4>Predicting the testing data</h4>
+
+<pre><code class="r"># xgboost predict test data using the trained model
+pred &lt;- predict(bst, testing_matrix)  
+</code></pre>
+
+<pre><code>## Error in predict(bst, testing_matrix): error in evaluating the argument &#39;object&#39; in selecting a method for function &#39;predict&#39;: Error: object &#39;bst&#39; not found
+</code></pre>
+
+<pre><code class="r">head(pred, 10)  
+</code></pre>
+
+<pre><code>## Error in head(pred, 10): object &#39;pred&#39; not found
+</code></pre>
+
+<h4>Post-processing</h4>
+
+<p>Output of prediction is the predicted probability of the 5 levels (columns) of outcome.<br>
+Decode the quantitative 5 levels of outcomes to qualitative letters (A, B, C, D, E).   </p>
+
+<pre><code class="r"># decode prediction
+pred &lt;- matrix(pred, nrow=num_len, ncol=length(pred)/num_len)
+</code></pre>
+
+<pre><code>## Error in matrix(pred, nrow = num_len, ncol = length(pred)/num_len): object &#39;pred&#39; not found
+</code></pre>
+
+<pre><code class="r">pred &lt;- t(pred)
+</code></pre>
+
+<pre><code>## Error in t(pred): object &#39;pred&#39; not found
+</code></pre>
+
+<pre><code class="r">pred &lt;- max.col(pred, &quot;last&quot;)
+</code></pre>
+
+<pre><code>## Error in as.matrix(m): object &#39;pred&#39; not found
+</code></pre>
+
+<pre><code class="r">pred.char &lt;- toupper(letters[pred])
+</code></pre>
+
+<pre><code>## Error in toupper(letters[pred]): object &#39;pred&#39; not found
+</code></pre>
+
+<h4>Feature importance</h4>
+
+<pre><code class="r"># get the trained model
+model &lt;- xgb.dump(bst, with.stats=TRUE)
+</code></pre>
+
+<pre><code>## Error in xgb.dump(bst, with.stats = TRUE): object &#39;bst&#39; not found
+</code></pre>
+
+<pre><code class="r"># get the feature real names
+names &lt;- dimnames(training_matrix)[[2]]
+</code></pre>
+
+<pre><code>## Error in eval(expr, envir, enclos): object &#39;training_matrix&#39; not found
+</code></pre>
+
+<pre><code class="r"># compute feature importance matrix
+importance_matrix &lt;- xgb.importance(names, model=bst)
+</code></pre>
+
+<pre><code>## Error in xgb.importance(names, model = bst): feature_names: Has to be a vector of character or NULL if the model dump already contains feature name. Look at this function documentation to see where to get feature names.
+</code></pre>
+
+<pre><code class="r"># plot
+gp &lt;- xgb.plot.importance(importance_matrix)
+</code></pre>
+
+<pre><code>## Error in match(x, table, nomatch = 0L): object &#39;importance_matrix&#39; not found
+</code></pre>
+
+<pre><code class="r">print(gp) 
+</code></pre>
+
+<pre><code>## Error in print(gp): object &#39;gp&#39; not found
+</code></pre>
+
+<h3>Final submission files</h3>
+
+<pre><code class="r">path &lt;- &quot;./answer&quot;
+pml_write_files &lt;- function(x) {
+    n = length(x)
+    for(i in 1: n) {
+        filename &lt;- paste0(&quot;problem_&quot;, i, &quot;.txt&quot;)
+        write.table(x[i], file=file.path(path, filename), 
+                    quote=FALSE, row.names=FALSE, col.names=FALSE)
+    }
+}
+pml_write_files(pred.char)
+</code></pre>
+
+<pre><code>## Error in pml_write_files(pred.char): object &#39;pred.char&#39; not found
+</code></pre>
+
+<hr>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+    <slide class="backdrop"></slide>
+  </slides>
+  <div class="pagination pagination-small" id='io2012-ptoc' style="display:none;">
+    <ul>
+      <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=1 title='Prediction Assignment'>
+         1
+      </a>
+    </li>
+  </ul>
+  </div>  <!--[if IE]>
+    <script 
+      src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js">  
+    </script>
+    <script>CFInstall.check({mode: 'overlay'});</script>
+  <![endif]-->
+</body>
+  <!-- Load Javascripts for Widgets -->
+  
+  <!-- LOAD HIGHLIGHTER JS FILES -->
+  <script src="http://slidifylibraries2.googlecode.com/git/inst/libraries/highlighters/highlight.js/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  <!-- DONE LOADING HIGHLIGHTER JS FILES -->
+   
+  </html>

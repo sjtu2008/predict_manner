@@ -1,0 +1,13 @@
+base
+knitr
+lattice
+ggplot2
+caret
+rpart
+corrplot
+rpart.plot
+RColorBrewer
+rattle
+Rtsne
+xgboost
+Ckmeans.1d.dp
